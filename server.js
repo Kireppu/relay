@@ -11,6 +11,7 @@
  *   {"t":"ka"}                                           keepalive - send every ~500 ms
  *   {"t":"cmd","mode":"AUTO|MANUAL","dir":"FORWARD|BACK|LEFT|RIGHT|STOP",
  *              "obstacle":"ON|OFF","lights":"ON|OFF"}    any subset of the fields
+ *   {"t":"cmd", ... "left":-255..255,"right":-255..255,"brake":0|1,"clutch":0..100}   differential drive (manual)
  * Robot -> app: {"t":"state", ...} about every 300 ms, plus "online": false when the robot drops.
  *
  * Env vars: ROBOT_TOKEN, APP_TOKEN (or one TOKEN for both). PORT is set by Render.
@@ -77,8 +78,32 @@ function sanitize(m) {
     return { t: 'set', id, v };
   }
   if (m.t !== 'cmd') return null;
-}
 
+  const out = { t: 'cmd' };
+
+  // enum fields: mode, dir (alias: direction), obstacle, lights
+  for (const [k, v] of Object.entries(m)) {
+    const key = ALIAS[k] || k;
+    if (!ENUM[key]) continue;
+    const val = String(v).toUpperCase();
+    if (ENUM[key].includes(val)) out[key] = val;
+  }
+
+  // differential drive: left / right speed, active brake, clutch percentage
+  for (const k of ['left', 'right']) {
+    if (m[k] !== undefined) {
+      const n = Number(m[k]);
+      if (Number.isFinite(n)) out[k] = Math.max(-255, Math.min(255, Math.round(n)));
+    }
+  }
+  if (m.brake !== undefined) out.brake = (m.brake === true || Number(m.brake) === 1) ? 1 : 0;
+  if (m.clutch !== undefined) {
+    const n = Number(m.clutch);
+    if (Number.isFinite(n)) out.clutch = Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  return Object.keys(out).length > 1 ? out : null;   // nothing valid -> drop
+}
 // ---------- HTTP ----------
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
