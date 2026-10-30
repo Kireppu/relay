@@ -1,8 +1,15 @@
 {
-  "name": "robot-video-relay",
+  "name": "robot-relay",
   "version": "1.0.0",
+  "description": "Control + MJPEG relay for the ESP32-CAM surveillance robot",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "dependencies": { "ws": "^8.18.0" },
-  "engines": { "node": ">=18" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
 }
